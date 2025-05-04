@@ -1,4 +1,3 @@
-# Load libraries
 library(ggplot2)
 library(forecast)
 library(tidyverse)
@@ -8,58 +7,44 @@ library(fable)
 library(tsibbledata)
 library(tseries)
 
-# Load dataset (Australian beer production)
 data <- tsibbledata::aus_production %>% filter(!is.na(Beer))
 
-# Visualize the time series
 ggplot(data, aes(x = Quarter, y = Beer)) +
   geom_line(color = "steelblue") +
   labs(title = "Australian Beer Production", y = "Megalitres")
 
-# Convert to time series object
 beer_ts <- ts(data$Beer, start = c(1956, 1), frequency = 4)
 
-# Check stationarity
 acf(beer_ts)
 pacf(beer_ts)
-adf.test(beer_ts)  # Augmented Dickey-Fuller test
+adf.test(beer_ts)
 
-# If not stationary, take first difference
 beer_diff <- diff(beer_ts, differences = 1)
 adf.test(beer_diff)
 
-# Fit ARIMA and ETS models
 arima_model <- auto.arima(beer_ts)
 ets_model <- ets(beer_ts)
 
-# Print summaries
 summary(arima_model)
 summary(ets_model)
 
-# Forecast next 8 quarters
 arima_forecast <- forecast(arima_model, h = 8)
 ets_forecast <- forecast(ets_model, h = 8)
 
-# Plot forecasts
 autoplot(arima_forecast) + ggtitle("ARIMA Forecast")
 autoplot(ets_forecast) + ggtitle("ETS Forecast")
 
-# Model Evaluation: Train-test split
 train <- window(beer_ts, end = c(2010, 4))
 test <- window(beer_ts, start = c(2011, 1))
 
-# Fit models on training set
 arima_train <- auto.arima(train)
 ets_train <- ets(train)
 
-# Forecast on test set
 arima_pred <- forecast(arima_train, h = length(test))
 ets_pred <- forecast(ets_train, h = length(test))
 
-# Evaluate accuracy
 arima_acc <- accuracy(arima_pred, test)
 ets_acc <- accuracy(ets_pred, test)
 
-# Print MAE and RMSE
 arima_acc[, c("MAE", "RMSE")]
 ets_acc[, c("MAE", "RMSE")]
