@@ -1,0 +1,36 @@
+library(tidyverse)
+library(caret)
+library(pROC)
+
+set.seed(123)
+n <- 1000
+data <- tibble(
+  age = sample(21:65, n, replace = TRUE),
+  income = round(rnorm(n, mean = 50000, sd = 15000), 0),
+  loan_amount = round(rnorm(n, mean = 15000, sd = 5000), 0),
+  default = rbinom(n, 1, prob = 0.3)
+)
+
+summary(data)
+ggplot(data, aes(x = income, fill = as.factor(default))) +
+  geom_histogram(bins = 30, alpha = 0.7, position = "identity") +
+  labs(title = "Income Distribution by Default Status", fill = "Default")
+
+set.seed(123)
+split <- createDataPartition(data$default, p = 0.8, list = FALSE)
+train <- data[split, ]
+test <- data[-split, ]
+
+model <- glm(default ~ age + income + loan_amount, data = train, family = binomial)
+
+prob <- predict(model, test, type = "response")
+pred <- ifelse(prob > 0.5, 1, 0)
+
+conf_matrix <- confusionMatrix(factor(pred), factor(test$default))
+roc_obj <- roc(test$default, prob)
+auc_value <- auc(roc_obj)
+
+print(conf_matrix)
+cat("AUC:", auc_value, "\n")
+
+plot(roc_obj, col = "blue", main = "ROC Curve for Logistic Regression")
